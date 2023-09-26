@@ -1,114 +1,88 @@
-import { DateTime } from 'luxon';
-import { InvalidExpressionToParseException } from './exceptions/invalid-expression-to-parse-exception';
+import { DateTime } from "luxon"
+import { InvalidExpressionToParseException } from "./exceptions/invalid-expression-to-parse-exception"
 
 export class RfcParser {
-    /** "siglas" part ____000101AAA */
-    private readonly _name: string;
-    /** "año" part AAAA__0101AAA */
-    private readonly _year: number;
-    /** "mes" part AAAA00__01AAA */
-    private readonly _month: number;
-    /** "día" part AAAA0001__AAA */
-    private readonly _day: number;
-    /** "homoclave" part AAAA000101__A */
-    private readonly _hKey: string;
-    /** "dígito verificador" part AAAA000101AA_ */
-    private readonly _checksum: string;
-    /** Converter datetime of current rfc */
-    private readonly _date: DateTime;
+  constructor(name, year, month, day, hKey, checksum, date) {
+    this._name = name
+    this._year = year
+    this._month = month
+    this._day = day
+    this._hKey = hKey
+    this._checksum = checksum
+    this._date = date
+  }
 
-    private constructor(
-        name: string,
-        year: number,
-        month: number,
-        day: number,
-        hKey: string,
-        checksum: string,
-        date: DateTime
-    ) {
-        this._name = name;
-        this._year = year;
-        this._month = month;
-        this._day = day;
-        this._hKey = hKey;
-        this._checksum = checksum;
-        this._date = date;
-    }
-
+  /**
+   * @param rfc -
+   * @throws InvalidExpressionToParseException
+   *
+   */
+  static parse(rfc) {
     /**
-     * @param rfc -
-     * @throws InvalidExpressionToParseException
-     *
+     * Explicación de la expresión regular:
+     * - desde el inicio
+     *      /^
+     * - letras y números para el nombre (3 para morales, 4 para físicas)
+     *      (?<name>[A-ZÑ&]\{3,4\})
+     * - año mes y día, la validez de la fecha se comprueba después
+     *      (?<year>[0-9]\{2\})(?<month>[0-9]\{2\})(?<day>[0-9]\{2\})
+     * - homoclave (letra o dígito 2 veces + A o dígito 1 vez)
+     *      (?<hkey>[A-Z0-9]\{2\})(?<checksum>[A0-9]\{1\})
+     * - hasta el final
+     *      $/
+     * - tratamiento unicode
+     *      u
      */
-    public static parse(rfc: string): RfcParser {
-        /**
-         * Explicación de la expresión regular:
-         * - desde el inicio
-         *      /^
-         * - letras y números para el nombre (3 para morales, 4 para físicas)
-         *      (?<name>[A-ZÑ&]\{3,4\})
-         * - año mes y día, la validez de la fecha se comprueba después
-         *      (?<year>[0-9]\{2\})(?<month>[0-9]\{2\})(?<day>[0-9]\{2\})
-         * - homoclave (letra o dígito 2 veces + A o dígito 1 vez)
-         *      (?<hkey>[A-Z0-9]\{2\})(?<checksum>[A0-9]\{1\})
-         * - hasta el final
-         *      $/
-         * - tratamiento unicode
-         *      u
-         */
-        const regex =
-            /^(?<name>[A-ZÑ&]{3,4})(?<year>\d{2})(?<month>\d{2})(?<day>\d{2})(?<hkey>[A-Z0-9]{2})(?<checksum>[A0-9])$/u;
-        const matches = regex.exec(rfc.toUpperCase());
-        if (!matches?.groups)
-            throw new Error(
-                'The RFC expression does not contain the valid parts'
-            );
-        const date = DateTime.fromISO(
-            `20${matches.groups.year}-${matches.groups.month}-${matches.groups.day}`
-        );
-        if (
-            `${matches.groups.year}${matches.groups.month}${matches.groups.day}` !==
-            date.toFormat('yyLLdd')
-        ) {
-            throw InvalidExpressionToParseException.invalidDate(rfc);
-        }
-
-        return new RfcParser(
-            matches.groups.name,
-            Number(matches.groups.year),
-            Number(matches.groups.month),
-            Number(matches.groups.day),
-            matches.groups.hkey,
-            matches.groups.checksum,
-            date
-        );
+    const regex = /^(?<name>[A-ZÑ&]{3,4})(?<year>\d{2})(?<month>\d{2})(?<day>\d{2})(?<hkey>[A-Z0-9]{2})(?<checksum>[A0-9])$/u
+    const matches = regex.exec(rfc.toUpperCase())
+    if (!matches?.groups)
+      throw new Error("The RFC expression does not contain the valid parts")
+    const date = DateTime.fromISO(
+      `20${matches.groups.year}-${matches.groups.month}-${matches.groups.day}`
+    )
+    if (
+      `${matches.groups.year}${matches.groups.month}${matches.groups.day}` !==
+      date.toFormat("yyLLdd")
+    ) {
+      throw InvalidExpressionToParseException.invalidDate(rfc)
     }
 
-    public getName(): string {
-        return this._name;
-    }
+    return new RfcParser(
+      matches.groups.name,
+      Number(matches.groups.year),
+      Number(matches.groups.month),
+      Number(matches.groups.day),
+      matches.groups.hkey,
+      matches.groups.checksum,
+      date
+    )
+  }
 
-    public getYear(): number {
-        return this._year;
-    }
+  getName() {
+    return this._name
+  }
 
-    public getMonth(): number {
-        return this._month;
-    }
+  getYear() {
+    return this._year
+  }
 
-    public getDay(): number {
-        return this._day;
-    }
+  getMonth() {
+    return this._month
+  }
 
-    public getHKey(): string {
-        return this._hKey;
-    }
+  getDay() {
+    return this._day
+  }
 
-    public getChecksum(): string {
-        return this._checksum;
-    }
+  getHKey() {
+    return this._hKey
+  }
 
-    public getDate(): DateTime {
-        return this._date;
-    }
+  getChecksum() {
+    return this._checksum
+  }
+
+  getDate() {
+    return this._date
+  }
 }
